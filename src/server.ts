@@ -1,6 +1,9 @@
+import config from "./config"
+import app from "./app"
 
 
-const port = 
+
+const port = config.port
 
 
 

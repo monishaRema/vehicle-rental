@@ -1,4 +1,5 @@
 import { Router } from "express";
+import authController from "./auth.controller";
 
 const authRouter = Router();
 // Root route 
@@ -6,7 +7,7 @@ const authRouter = Router();
 
 //POST: Signup route => /api/v1/auth/signup => public route
 
-authRouter.post("/signup")
+authRouter.post("/signup" , authController.userSignup)
 //POST: Signin route => /api/v1/auth/signin => public route
 
 

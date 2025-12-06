@@ -62,8 +62,46 @@ const userSignup = async (req: Request, res: Response) => {
   }
 };
 
+const userSignIn = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return sendError(res, "Email and password are required to signin", 400);
+  }
+
+  try {
+    const lowercasedEmail = email.trim().toLowerCase();
+
+    const result = await authService.userSignInService(
+      lowercasedEmail,
+      password
+    );
+
+    if (result.status === 401) {
+      return sendError(res, result.message, result.status);
+    } else if (result.status === 403) {
+      return sendError(res, result.message, result.status);
+    } else if (result.status === 200) {
+      return sendSuccess(res, result.message, result.status, result.data);
+    } else {
+      return sendError(
+        res,
+        "Unexpected server error occurred during signin.",
+        500
+      );
+    }
+  } catch (error: any) {
+    return sendError(
+      res,
+      "Unexpected server error occurred during signin.",
+      500
+    );
+  }
+};
+
 const authController = {
   userSignup,
+  userSignIn,
 };
 
 export default authController;

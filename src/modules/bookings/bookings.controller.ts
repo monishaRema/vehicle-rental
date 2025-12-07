@@ -22,7 +22,7 @@ const createBooking = async (req: Request, res: Response) => {
       );
     }
 
-       // customer ID based on role
+    // customer ID based on role
     let finalCustomerId: number;
 
     if (authUser.role === "customer") {
@@ -62,7 +62,7 @@ const createBooking = async (req: Request, res: Response) => {
       return sendError(res, result.message, result.status);
     }
   } catch (err: any) {
-    console.log(err)
+    console.log(err);
     return sendError(
       res,
       "Unexpected server error while creating new bookings",
@@ -72,14 +72,35 @@ const createBooking = async (req: Request, res: Response) => {
 };
 
 const getBookings = async (req: Request, res: Response) => {
-  try {
-    const result = await bookingsService.getAllBookingsService();
+  if (!req.user) {
+    return sendError(res, "Unauthorized access", 401);
+  }
 
-    if (result.rowCount === 0) {
-      return sendSuccess(res, "No booking found", 200);
+  const role = req.user.role;
+  const id = req.user.id;
+
+  if (!["admin", "customer"].includes(role)) {
+    return sendError(res, "Invalid user role", 403);
+  }
+
+  try {
+    const result = await bookingsService.getAllBookingsService({id,role,});
+
+    if (result.status >= 400) {
+      return sendError(res, result.message, result.status);
     }
 
-    return sendSuccess(res, "successfully get all bookings", 200);
+    const data = result.data || [];
+
+    if (data.length === 0) {
+      const msg = role === "admin"? "No bookings found" : "You don't have any bookings yet";
+      return sendSuccess(res, msg, 200, []);
+    }
+
+    const msg = role === "admin"? "Bookings retrieved successfully" : "Your bookings retrieved successfully";
+
+    return sendSuccess(res, msg, 200, data);
+
   } catch (err: any) {
     return sendError(
       res,
@@ -88,6 +109,8 @@ const getBookings = async (req: Request, res: Response) => {
     );
   }
 };
+
+
 
 const getBookingById = async (req: Request, res: Response) => {
   const { bookingId } = req.params;
@@ -119,5 +142,6 @@ const bookingController = {
   createBooking,
   getBookings,
   getBookingById,
+  updateBooking,
 };
 export default bookingController;

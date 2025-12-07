@@ -12,8 +12,8 @@ bookingsRouter.post("/", auth("admin", "customer"), bookingController.createBook
 // GET: /api/v1/bookings =>  get all bookings - admin or customer only route
 bookingsRouter.get("/", auth("admin", "customer"), bookingController.getBookings );
 
-// GET: /api/v1/bookings/:bookingId =>  get single booking - admin or customer only route
-bookingsRouter.get("/:bookingId", auth("admin", "customer"), bookingController.getBookingById );
+// UPDATE: /api/v1/bookings/:bookingId =>   update booking - admin or customer only route
+bookingsRouter.put("/:bookingId", auth("admin", "customer"), bookingController.updateBooking );
 
 
 

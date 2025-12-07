@@ -1,6 +1,6 @@
 import { db } from "../../config/db";
 import { formatDate } from "../../lib/helpers";
-import { CreateBookingInput } from "../../types/types";
+import { AuthUser, CreateBookingInput } from "../../types/types";
 
 const createBookingsService = async (payload: CreateBookingInput) => {
   const { customerId, vehicleId, rentStartDate, rentEndDate } = payload;
@@ -101,8 +101,106 @@ const createBookingsService = async (payload: CreateBookingInput) => {
   }
 };
 
-const getAllBookingsService = async () => {
-  return await db.query(`SELECT * FROM bookings`);
+const getAllBookingsService = async (
+  params: AuthUser
+) => {
+  const { id ,role } = params;
+
+  try {
+    if (role === "admin") {
+      const result = await db.query(
+        `
+        SELECT
+          b.id,
+          b.customer_id,
+          b.vehicle_id,
+          b.rent_start_date,
+          b.rent_end_date,
+          b.total_price,
+          b.status,
+          u.name  AS customer_name,
+          u.email AS customer_email,
+          v.vehicle_name,
+          v.registration_number
+        FROM bookings b
+        JOIN users u ON b.customer_id = u.id
+        JOIN vehicles v ON b.vehicle_id = v.id
+        
+        `
+      );
+
+      const bookings = result.rows.map((row) => ({
+        id: row.id,
+        customer_id: row.customer_id,
+        vehicle_id: row.vehicle_id,
+        rent_start_date: formatDate(row.rent_start_date),
+        rent_end_date: formatDate(row.rent_end_date),
+        total_price: Number(row.total_price),
+        status: row.status,
+        customer: {
+          name: row.customer_name,
+          email: row.customer_email,
+        },
+        vehicle: {
+          vehicle_name: row.vehicle_name,
+          registration_number: row.registration_number,
+        },
+      }));
+
+      return {
+        status: 200,
+        message: "Bookings fetched",
+        data: bookings,
+      };
+    }
+
+    // Customer only view own bookings
+    const result = await db.query(
+      `
+      SELECT
+        b.id,
+        b.vehicle_id,
+        b.rent_start_date,
+        b.rent_end_date,
+        b.total_price,
+        b.status,
+        v.vehicle_name,
+        v.registration_number,
+        v.type AS vehicle_type
+      FROM bookings b
+      JOIN vehicles v ON b.vehicle_id = v.id
+      WHERE b.customer_id = $1
+      ORDER BY b.created_at DESC
+      `,
+      [id]
+    );
+
+    const bookings = result.rows.map((row) => ({
+      id: row.id,
+      vehicle_id: row.vehicle_id,
+      rent_start_date: formatDate(row.rent_start_date),
+      rent_end_date: formatDate(row.rent_end_date),
+      total_price: Number(row.total_price),
+      status: row.status,
+      vehicle: {
+        vehicle_name: row.vehicle_name,
+        registration_number: row.registration_number,
+        type: row.vehicle_type,
+      },
+    }));
+
+    return {
+      status: 200,
+      message: "User bookings fetched",
+      data: bookings,
+    };
+  } catch (err: any) {
+    console.error("DB error in getAllBookingsService:", err);
+    return {
+      status: 500,
+      message: "Database error while fetching bookings",
+    };
+  }
 };
 
 const getBookingByIdService = async (bookingId: number) => {
@@ -116,11 +214,16 @@ const getVehicleAvailablityById = async (vehicleId: number) => {
   );
 };
 
+const updateBookingService = async () =>{
+
+}
+
 const bookingsService = {
   getAllBookingsService,
   getBookingByIdService,
   createBookingsService,
   getVehicleAvailablityById,
+  updateBookingService
 };
 
 export default bookingsService;

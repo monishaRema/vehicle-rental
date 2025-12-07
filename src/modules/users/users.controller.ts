@@ -100,29 +100,32 @@ const updateUser = async (req: Request, res: Response) => {
 };
 
 
-const deleteUser =  async (req: Request, res: Response) => {
-if (req.user?.role !== "admin") {
+const deleteUser = async (req: Request, res: Response) => {
+
+  if (req.user?.role !== "admin") {
     return sendError(res, "Unauthorized access, admin only route", 403);
   }
 
   const { userId } = req.params;
   const targetId = Number(userId);
 
-  if (isNaN(targetId)) {
+  if (isNaN(targetId) || targetId <= 0) {
     return sendError(res, "Invalid user id", 400);
   }
 
-
   try {
+    const result = await userService.deleteUserService(targetId);
 
-    const result = await userService.deleteUserService(targetId)
+    if (result.status === 200) {
+      return sendSuccess(res, result.message, 200);
+    }
 
-    
-  } catch (err:any) {
+    return sendError(res, result.message, result.status);
+  } catch (err: any) {
+    console.error("Unexpected error while deleting user:", err);
     return sendError(res, "Unexpected server error while deleting user", 500);
   }
-
-}
+};
 
 const usersController = {
   getAllUsers,

@@ -1,5 +1,5 @@
 import { db } from "../../config/db";
-import { CreateVehiclePayload } from "../../types/db";
+import { CreateVehiclePayload } from "../../types/types";
 
 const createVehicelsService = async (
   payload: CreateVehiclePayload
@@ -54,7 +54,7 @@ const createVehicelsService = async (
       data: result.rows[0],
     };
   } catch (err: any) {
-    console.log(err.message)
+    console.log(err.message);
     return {
       status: 500,
       message: "Database error while creating vehicle. Please try again later.",
@@ -70,10 +70,56 @@ const getVehicelByIdService = async (vehicleId: number) => {
   return await db.query(`SELECT * FROM vehicles WHERE id = $1`, [vehicleId]);
 };
 
+const deleteVehicleService = async (vehicleId: number) => {
+  const existingVehicles = await getVehicelByIdService(vehicleId);
+
+  if (existingVehicles.rowCount === 0) {
+    return {
+      status: 404,
+      message: `No vehicle found with this id no ${vehicleId} `,
+    };
+  }
+
+  const existingBooking = await db.query(
+    `
+      SELECT 1 
+      FROM bookings 
+      WHERE 
+        vehicle_id = $1 
+        AND status = 'active'
+      LIMIT 1
+    `,
+    [vehicleId]
+  );
+
+  if (existingBooking.rowCount !== 0) {
+    return {
+      status: 409,
+      message:
+        "Vehicle has active bookings and cannot be deleted. Please cancel or complete the bookings first.",
+    };
+  }
+
+  const result = await db.query(`DELETE FROM vehicles WHERE id = $1`, [
+    vehicleId,
+  ]);
+
+  if (result.rowCount === 0) {
+    return {
+      status: 500,
+      message: "Database error to delete the vehicle",
+    };
+  }
+  return {
+    status: 200,
+    message: "Vehicle deleted successfully",
+  };
+};
 const vehiclesService = {
   getAllVehicelsService,
   getVehicelByIdService,
   createVehicelsService,
+  deleteVehicleService,
 };
 
 export default vehiclesService;

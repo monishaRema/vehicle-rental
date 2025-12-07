@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sendError, sendSuccess } from "../../lib/helpers";
 import userService from "./users.service";
-import { UpdateUserPayload } from "../../types/db";
+import { UpdateUserPayload } from "../../types/types";
 
 const getAllUsers = async (req: Request, res: Response) => {
   if (req.user?.role !== "admin") {
@@ -12,12 +12,10 @@ const getAllUsers = async (req: Request, res: Response) => {
     const result = await userService.getAllUserService();
 
     if (result.rowCount === 0) {
-      return sendError(res, "No users found", 404);
+      return sendSuccess(res, "No user found", 200, result.rows);;
     }
 
-    return sendSuccess(res, "Fetched all users successfully", 200, {
-      users: result.rows,
-    });
+    return sendSuccess(res, "Users retrieved successfully", 200, result.rows);
   } catch (err: any) {
     return sendError(res, "Unexpected server error while fetching users", 500);
   }
@@ -107,7 +105,17 @@ if (req.user?.role !== "admin") {
     return sendError(res, "Unauthorized access, admin only route", 403);
   }
 
+  const { userId } = req.params;
+  const targetId = Number(userId);
+
+  if (isNaN(targetId)) {
+    return sendError(res, "Invalid user id", 400);
+  }
+
+
   try {
+
+    const result = await userService.deleteUserService(targetId)
 
     
   } catch (err:any) {

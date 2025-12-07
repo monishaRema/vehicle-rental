@@ -1,5 +1,5 @@
 import { db } from "../../config/db";
-import { UpdateUserPayload } from "../../types/db";
+import { UpdateUserPayload } from "../../types/types";
 
 const getUserById = async (userId: number) => {
   return db.query(
@@ -47,14 +47,19 @@ const updateUserService = async (userId: number, payload: UpdateUserPayload) => 
 
   return result;
 };
+ 
 
+const deleteUserService =  async (userId: number) =>{
+
+}
 
 
 const userService = {
 
     getAllUserService,
     getUserById,
-    updateUserService
+    updateUserService,
+    deleteUserService
 
 }
 export default userService;

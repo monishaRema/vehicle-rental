@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sendError, sendSuccess } from "../../lib/helpers";
 import vehiclesService from "./vehicles.service";
-import { CreateVehiclePayload } from "../../types/db";
+import { CreateVehiclePayload } from "../../types/types";
 
 const createVehicels = async (req: Request, res: Response) => {
   if (req.user?.role !== "admin") {
@@ -75,10 +75,14 @@ const getAllVehicles = async (req: Request, res: Response) => {
     const result = await vehiclesService.getAllVehicelsService();
 
     if (result.rowCount === 0) {
-      return sendSuccess(res, "No vehicle found", 200);
+      return sendSuccess(res, "No vehicle found", 200, [...result.rows]);
     }
-
-    return sendSuccess(res, "successfully get all vehicles", 200);
+    return sendSuccess(
+      res,
+      "Vehicles retrieved successfully",
+      200,
+      result?.rows
+    );
   } catch (err: any) {
     return sendError(
       res,
@@ -89,7 +93,19 @@ const getAllVehicles = async (req: Request, res: Response) => {
 };
 
 const getVehicleById = async (req: Request, res: Response) => {
+  const { vehicleId } = req.params;
+  const targetId = Number(vehicleId);
+
+  if (isNaN(targetId)) {
+    return sendError(res, "Invalid user id", 400);
+  }
+
   try {
+    const result = await vehiclesService.getVehicelByIdService(targetId);
+
+    if (result.rowCount === 0) {
+    }
+    sendSuccess(res, "Vehicle retrieved successfully", 200, result?.rows[0]);
   } catch (err: any) {
     return sendError(
       res,
@@ -100,6 +116,14 @@ const getVehicleById = async (req: Request, res: Response) => {
 };
 
 const updateVehicle = async (req: Request, res: Response) => {
+  if (req.user?.role !== "admin") {
+    return sendError(
+      res,
+      "Unauthorized access, only admin can update vehicle",
+      403
+    );
+  }
+
   try {
   } catch (err: any) {
     return sendError(
@@ -111,7 +135,29 @@ const updateVehicle = async (req: Request, res: Response) => {
 };
 
 const deleteVehicle = async (req: Request, res: Response) => {
+  if (req.user?.role !== "admin") {
+    return sendError(
+      res,
+      "Unauthorized access, only admin can delete vehicle",
+      403
+    );
+  }
+
+  const { vehicleId } = req.params;
+  const id = Number(vehicleId);
+
+  if (!vehicleId && isNaN(id)) {
+    sendError(res, "Vehicle id must be a number", 400);
+  }
+
   try {
+    const result = await vehiclesService.deleteVehicleService(id);
+
+    if (result.status === 200) {
+      sendSuccess(res, result.message, result.status);
+    } else {
+      sendError(res, result.message, result.status);
+    }
   } catch (err: any) {
     return sendError(
       res,

@@ -17,11 +17,17 @@ export const sendSuccess = (
   res: Response,
   message: string,
   status: number,
-  data?: Record<string, unknown>
+  data?: unknown
 ) => {
-  res.status(status).json({
+  return res.status(status).json({
     success: true,
     message,
-    data,
+    data: data ?? null,
   });
+};
+
+export const formatDate = (value: any) => {
+  if (!value) return value;
+  
+  return new Date(value).toISOString().split("T")[0];
 };

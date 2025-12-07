@@ -65,6 +65,7 @@ const initDB = async () => {
         CHECK (total_price > 0),
 
         status VARCHAR(20) NOT NULL
+        DEFAULT 'active'
         CHECK (status IN ('active', 'cancelled', 'returned')),
          
         created_at TIMESTAMP DEFAULT NOW(),

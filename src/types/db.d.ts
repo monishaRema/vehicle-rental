@@ -8,3 +8,11 @@ export interface SignupData {
   phone: string,
   role: userRole
 }
+
+
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  phone?: string;
+  role?: string; 
+}

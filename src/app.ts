@@ -22,7 +22,7 @@ app.get("/",(req:Request,res:Response) =>{
 
 
 app.use("/api/v1/auth", authRouter);
-// app.use("/api/v1/users",usersRouter);
+app.use("/api/v1/users",usersRouter);
 // app.use("/api/v1/vehicles",vehicelsRouter);
 // app.use("/api/v1/bookings",bookingsRouter);
 

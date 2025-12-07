@@ -1,6 +1,9 @@
 
 type userRole = "customer" | "admin"
 
+export type VehicleType = "car" | "bike" | "van" | "SUV";
+
+
 export interface SignupData {
   name: string,
   email: string,
@@ -15,4 +18,12 @@ export interface UpdateUserPayload {
   email?: string;
   phone?: string;
   role?: string; 
+}
+
+export interface CreateVehiclePayload {
+  vehicle_name: string;
+  type: VehicleType;
+  registration_number: string;
+  daily_rent_price: number;
+  availability_status: string;
 }

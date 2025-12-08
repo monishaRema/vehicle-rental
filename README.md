@@ -1,7 +1,7 @@
 # Vehicle Rental API
 
 A clean, modular, and production-ready REST API for managing vehicle rentals — including user authentication, vehicle inventory, booking lifecycle, and role-based authorization.
-<a herf="https://vehicle-rental-kg5ha9eq0-monisha-remas-projects.vercel.app/  ">Live API Root</a>
+<a herf="https://vehicle-rental-ivory.vercel.app">Live API Root</a>
 
 
 <a herf="https://github.com/monishaRema/vehicle-rental/  ">GitHub Repository</a> 
@@ -80,7 +80,7 @@ npm install
    ```
 
 ## Usage
-Base URL: `https://vehicle-rental-kg5ha9eq0-monisha-remas-projects.vercel.app/`
+Base URL: `https://vehicle-rental-ivory.vercel.app`
 
 Every protected route requires: Authorization: Bearer <jwt_token>
 

@@ -15,6 +15,9 @@ bookingsRouter.get("/", auth("admin", "customer"), bookingController.getBookings
 // UPDATE: /api/v1/bookings/:bookingId =>   update booking - admin or customer only route
 bookingsRouter.put("/:bookingId", auth("admin", "customer"), bookingController.updateBooking );
 
+// Update the bookings to return once rent_end_date is expire
+// This route will be caller once in a day from corn from vercer or any scheduler
+bookingsRouter.post("/tasks/auto-return",  bookingController.autoReturn);
 
 
 

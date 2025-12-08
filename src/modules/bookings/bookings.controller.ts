@@ -215,35 +215,20 @@ const updateBooking = async (req: Request, res: Response) => {
   }
 };
 
-// const getBookingById = async (req: Request, res: Response) => {
-//   const { bookingId } = req.params;
+const autoReturn = async (req:Request, res:Response) => {
+  const result = await bookingsService.autoReturnOnBookingEndService();
+  
+  if(result.status > 400){
+    sendError(res, result.message, result.status)
+  }
+  return sendSuccess(res, result.message, result.status, result);
+}
 
-//   const targetId = Number(bookingId);
-
-//   if (isNaN(targetId)) {
-//     return sendError(res, "Invalid booking id", 400);
-//   }
-
-//   try {
-//     const result = await bookingsService.getBookingByIdService(targetId);
-
-//     if (result.rowCount === 0) {
-//       return sendSuccess(res, "No booking found", 200);
-//     }
-
-//     return sendSuccess(res, "successfully get all bookings", 200);
-//   } catch (err: any) {
-//     return sendError(
-//       res,
-//       "Unexpected server error while fetching bookings",
-//       500
-//     );
-//   }
-// };
 
 const bookingController = {
   createBooking,
   getBookings,
   updateBooking,
+  autoReturn
 };
 export default bookingController;

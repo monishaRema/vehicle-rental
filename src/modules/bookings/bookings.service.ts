@@ -102,7 +102,6 @@ const createBookingsService = async (payload: CreateBookingInput) => {
     };
   }
 };
-
 const getAllBookingsService = async (params: AuthUser) => {
   const { id, role } = params;
 
@@ -201,21 +200,15 @@ const getAllBookingsService = async (params: AuthUser) => {
     };
   }
 };
-
 const getBookingByIdService = async (bookingId: number) => {
   return await db.query(`SELECT * FROM bookings WHERE id = $1`, [bookingId]);
 };
-
 const getVehicleAvailablityById = async (vehicleId: number) => {
   return await db.query(
     `SELECT vehicle_name, daily_rent_price, availability_status FROM vehicles WHERE id = $1`,
     [vehicleId]
   );
 };
-
-
-
-
 const updateVehicleToAvaible = async (vehicleId: number) => {
   try {
     const result = await db.query(
@@ -246,7 +239,6 @@ const updateVehicleToAvaible = async (vehicleId: number) => {
     };
   }
 };
-
 // for admin only
 const markBookingReturnedService = async (bookingId: number) => {
   try {
@@ -300,8 +292,6 @@ const markBookingReturnedService = async (bookingId: number) => {
     };
   }
 };
-
-
 // for customer only
 const cancelBookingService = async (bookingId: number) => {
   try {
@@ -352,7 +342,58 @@ const cancelBookingService = async (bookingId: number) => {
     };
   }
 };
+// System tasks =>  auto-return expired bookings
+const autoReturnOnBookingEndService = async () => {
+  try {
+    // Find all active bookings whose rent_end_date is in the past
+    const expiredResult = await db.query(
+      `
+        SELECT id
+        FROM bookings
+        WHERE status = 'active'
+          AND rent_end_date < NOW()
+      `
+    );
 
+    if (expiredResult.rowCount === 0) {
+      return {
+        status: 200,
+        message: "No booking period ends",
+        processed: 0,
+        failures: 0,
+      };
+    }
+
+    let processed = 0;
+    let failures = 0;
+
+    for (const row of expiredResult.rows) {
+      const bookingId = row.id as number;
+
+      const result = await markBookingReturnedService(bookingId);
+
+      if (result.status === 200) {
+        processed += 1;
+      } else {
+        failures += 1;
+      }
+    }
+
+    return {
+      status: 200,
+      message: "Auto-return job completed",
+      processed,
+      failures,
+    };
+  } catch (err: any) {
+    return {
+      status: 500,
+      message: "Unexpected database error while running auto-return job",
+      processed: 0,
+      failures: 0,
+    };
+  }
+};
 const bookingsService = {
   getAllBookingsService,
   getBookingByIdService,
@@ -361,6 +402,6 @@ const bookingsService = {
   cancelBookingService,
   updateVehicleToAvaible,
   markBookingReturnedService,
+  autoReturnOnBookingEndService,
 };
-
 export default bookingsService;

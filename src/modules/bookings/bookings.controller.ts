@@ -244,7 +244,6 @@ const updateBooking = async (req: Request, res: Response) => {
 const bookingController = {
   createBooking,
   getBookings,
-  // getBookingById,
   updateBooking,
 };
 export default bookingController;

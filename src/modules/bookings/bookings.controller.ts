@@ -146,7 +146,6 @@ const updateBooking = async (req: Request, res: Response) => {
   const booking = existingBookingResult.rows[0];
 
   if (AuthUser.role === "customer") {
-
     if (!status || status !== "cancelled") {
       return sendError(
         res,
@@ -160,12 +159,10 @@ const updateBooking = async (req: Request, res: Response) => {
       return sendError(res, "You can cancel only your own booking", 403);
     }
 
-
     // Cancel only active booking
     if (booking.status !== "active") {
       return sendError(res, "Only active bookings can be cancelled", 400);
     }
-
 
     //  booking can be cancelled only before the rent_start_date
     const now = new Date();
@@ -178,21 +175,17 @@ const updateBooking = async (req: Request, res: Response) => {
         400
       );
     }
-     const result = await bookingsService.cancelBookingService(targetId);
-     if(result.status !== 200){
-        return sendError(res,result.message,result.status)
-     }
-
-     const updateVehicle = await bookingsService.updateVehicleToAvaible(booking.vehicle_id)
-
-     if(updateVehicle.status !== 200){
-      return sendError(res,updateVehicle.message,updateVehicle.status)
-     }
-
-    return sendSuccess(res, result.message,result.status,result.data);
+    const result = await bookingsService.cancelBookingService(targetId);
+    if (result.status !== 200) {
+      return sendError(res, result.message, result.status);
+    }
 
 
+  
+
+    return sendSuccess(res, result.message, result.status, result.data);
   } else if (AuthUser.role === "admin") {
+    // check the status is wrong
     if (!status || status !== "returned") {
       return sendError(
         res,
@@ -201,7 +194,22 @@ const updateBooking = async (req: Request, res: Response) => {
       );
     }
 
-    return sendSuccess(res, "Booking cancelled successfully", 200);
+    // Only active bookings can be marked as returned
+    if (booking.status !== "active") {
+      return sendError(
+        res,
+        "Only active bookings can be marked as returned",
+        400
+      );
+    }
+
+    const result = await bookingsService.markBookingReturnedService(targetId);
+
+    if (result.status !== 200) {
+      return sendError(res, result.message, result.status);
+    }
+
+    return sendSuccess(res, result.message, result.status, result.data);
   } else {
     return sendError(res, "Invalid user role", 403);
   }

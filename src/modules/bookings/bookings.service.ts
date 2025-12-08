@@ -213,7 +213,8 @@ const getVehicleAvailablityById = async (vehicleId: number) => {
   );
 };
 
-const updateBookingService = async () => {};
+
+
 
 const updateVehicleToAvaible = async (vehicleId: number) => {
   try {
@@ -246,6 +247,62 @@ const updateVehicleToAvaible = async (vehicleId: number) => {
   }
 };
 
+// for admin only
+const markBookingReturnedService = async (bookingId: number) => {
+  try {
+    const result = await db.query(
+      `
+        UPDATE bookings
+        SET 
+          status = 'returned'
+        WHERE id = $1
+        RETURNING id, customer_id, vehicle_id, rent_start_date, rent_end_date, total_price, status
+      `,
+      [bookingId]
+    );
+
+    if (result.rowCount === 0) {
+      return {
+        status: 500,
+        message: "Failed to mark the booking as returned",
+      };
+    }
+
+    const booking = result.rows[0];
+
+    // Make the vehicle available
+    const updateVehicle = await updateVehicleToAvaible(booking.vehicle_id);
+
+    if (updateVehicle.status !== 200) {
+      return {
+        status: updateVehicle.status,
+        message: updateVehicle.message,
+      };
+    }
+
+    return {
+      status: 200,
+      message: "Booking marked as returned. Vehicle is now available",
+      data: {
+        ...booking,
+        rent_start_date: formatDate(booking.rent_start_date),
+        rent_end_date: formatDate(booking.rent_end_date),
+        total_price: Number(booking.total_price),
+        vehicle: {
+          availability_status: "available",
+        },
+      },
+    };
+  } catch (err: any) {
+    return {
+      status: 500,
+      message: "Unexpected database error while marking booking returned",
+    };
+  }
+};
+
+
+// for customer only
 const cancelBookingService = async (bookingId: number) => {
   try {
     const result = await db.query(
@@ -266,6 +323,18 @@ const cancelBookingService = async (bookingId: number) => {
       };
     }
 
+    // make targeted  vehicle to availble once booking is cancelled
+    const updateVehicle = await updateVehicleToAvaible(
+      result.rows[0].vehicle_id
+    );
+
+    if (updateVehicle.status !== 200) {
+      return {
+        status: updateVehicle.status,
+        message: updateVehicle.message,
+      };
+    }
+
     return {
       status: 200,
       message: "Booking cancelled successfully",
@@ -277,7 +346,6 @@ const cancelBookingService = async (bookingId: number) => {
       },
     };
   } catch (err: any) {
-  
     return {
       status: 500,
       message: "Unexpected databse error",
@@ -290,9 +358,9 @@ const bookingsService = {
   getBookingByIdService,
   createBookingsService,
   getVehicleAvailablityById,
-  updateBookingService,
   cancelBookingService,
-  updateVehicleToAvaible
+  updateVehicleToAvaible,
+  markBookingReturnedService,
 };
 
 export default bookingsService;

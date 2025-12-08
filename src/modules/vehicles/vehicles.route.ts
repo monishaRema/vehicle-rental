@@ -12,7 +12,7 @@ vehicelsRouter.post("/", auth("admin"), vehiclesController.createVehicels);
 
 
 
-// GET: /api/v1/vehicles =>  get vehicles - public
+// GET: /api/v1/vehicles =>  get all vehicles - public
 vehicelsRouter.get("/", vehiclesController.getAllVehicles);
 
 

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sendError, sendSuccess } from "../../lib/helpers";
 import vehiclesService from "./vehicles.service";
-import { CreateVehiclePayload } from "../../types/types";
+import { CreateVehiclePayload, UpdateVehiclePayload } from "../../types/types";
 
 const createVehicels = async (req: Request, res: Response) => {
   if (req.user?.role !== "admin") {
@@ -104,8 +104,18 @@ const getVehicleById = async (req: Request, res: Response) => {
     const result = await vehiclesService.getVehicelByIdService(targetId);
 
     if (result.rowCount === 0) {
+      return sendError(
+        res,
+        `No vehicle found with this id no ${targetId} `,
+        404
+      );
     }
-    sendSuccess(res, "Vehicle retrieved successfully", 200, result?.rows[0]);
+    return sendSuccess(
+      res,
+      "Vehicle retrieved successfully",
+      200,
+      result?.rows[0]
+    );
   } catch (err: any) {
     return sendError(
       res,
@@ -124,7 +134,42 @@ const updateVehicle = async (req: Request, res: Response) => {
     );
   }
 
+  const { vehicleId } = req.params;
+  const id = Number(vehicleId);
+
+  if (!vehicleId && isNaN(id)) {
+    sendError(res, "Vehicle id must be a number", 400);
+  }
+
   try {
+    const {
+      vehicle_name,
+      type,
+      registration_number,
+      daily_rent_price,
+      availability_status,
+    } = req.body || {};
+
+    const existingVehicle = await vehiclesService.getVehicelByIdService(id);
+    if (existingVehicle.rowCount === 0) {
+      return sendError(res, `No vehicle found with this id no ${id} `, 404);
+    }
+
+    const payload: UpdateVehiclePayload = {
+      vehicle_name: vehicle_name || null,
+      type: type || null,
+      registration_number: registration_number || null,
+      daily_rent_price: daily_rent_price || null,
+      availability_status: availability_status || null,
+    };
+
+    const result = await vehiclesService.updateVehicleService(id, payload);
+
+    if (result.status !== 200) {
+      return sendError(res, result.message, result.status);
+    }
+
+    return sendSuccess(res, result.message, 200, result.data);
   } catch (err: any) {
     return sendError(
       res,
@@ -147,17 +192,17 @@ const deleteVehicle = async (req: Request, res: Response) => {
   const id = Number(vehicleId);
 
   if (!vehicleId && isNaN(id)) {
-    sendError(res, "Vehicle id must be a number", 400);
+    return sendError(res, "Vehicle id must be a number", 400);
   }
 
   try {
     const result = await vehiclesService.deleteVehicleService(id);
 
     if (result.status === 200) {
-      sendSuccess(res, result.message, result.status);
-    } else {
-      sendError(res, result.message, result.status);
+      return sendSuccess(res, result.message, result.status);
     }
+
+    return sendError(res, result.message, result.status);
   } catch (err: any) {
     return sendError(
       res,

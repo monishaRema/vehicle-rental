@@ -31,6 +31,13 @@ export interface CreateVehiclePayload {
   daily_rent_price: number;
   availability_status: string;
 }
+export interface UpdateVehiclePayload {
+  vehicle_name?: string;
+  type?: VehicleType;
+  registration_number?: string;
+  daily_rent_price?: number;
+  availability_status?: string;
+}
 
 
 export interface CreateBookingInput {
@@ -39,3 +46,5 @@ export interface CreateBookingInput {
   rentStartDate: string; 
   rentEndDate: string; 
 }
+
+

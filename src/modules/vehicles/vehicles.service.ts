@@ -1,5 +1,5 @@
 import { db } from "../../config/db";
-import { CreateVehiclePayload } from "../../types/types";
+import { CreateVehiclePayload, UpdateVehiclePayload } from "../../types/types";
 
 const createVehicelsService = async (
   payload: CreateVehiclePayload
@@ -70,6 +70,10 @@ const getVehicelByIdService = async (vehicleId: number) => {
   return await db.query(`SELECT * FROM vehicles WHERE id = $1`, [vehicleId]);
 };
 
+const getVehicelByRegNumberService = async (regNumber: string) => {
+  return await db.query(`SELECT * FROM vehicles WHERE  registration_number = $1`, [regNumber]);
+};
+
 const deleteVehicleService = async (vehicleId: number) => {
   const existingVehicles = await getVehicelByIdService(vehicleId);
 
@@ -115,11 +119,78 @@ const deleteVehicleService = async (vehicleId: number) => {
     message: "Vehicle deleted successfully",
   };
 };
+
+const updateVehicleService = async (
+  vehicleId: number,
+  payload: UpdateVehiclePayload
+) => {
+  const {
+    vehicle_name,
+    type,
+    registration_number,
+    daily_rent_price,
+    availability_status,
+  } = payload;
+
+  try {
+
+    const checkUniqueRegNumber = await getVehicelByRegNumberService(registration_number as string);
+
+    if(checkUniqueRegNumber.rowCount !== 0) {
+      return {
+      status: 500,
+      message: "Registration number must be unique : please use different registration number",
+    };
+    }
+
+    const result = await db.query(
+      `UPDATE vehicles 
+     SET 
+      vehicle_name        = COALESCE($1, vehicle_name), 
+      type                = COALESCE($2, type), 
+      registration_number = COALESCE($3, registration_number),
+      daily_rent_price    = COALESCE($4,daily_rent_price), 
+      availability_status = COALESCE($5, availability_status),
+      updated_at          = NOW()
+     WHERE id=$6
+     RETURNING id, vehicle_name, type, registration_number, daily_rent_price, availability_status
+    `,
+      [
+        vehicle_name ?? null,
+        type,
+        registration_number ?? null,
+        daily_rent_price ?? null,
+        availability_status ?? null,
+        vehicleId,
+      ]
+    );
+
+    if (result.rowCount === 0) {
+      return {
+        status: 500,
+        message: "Failed to update vehicle. Please try again later.",
+      };
+    }
+
+    return {
+      status: 200,
+      message: "Vehicle updated successfully",
+      data: result.rows[0],
+    };
+  } catch (err: any) {
+    return {
+      status: 500,
+      message: "Database error while updating vehicle. Please try again later.",
+    };
+  }
+};
 const vehiclesService = {
   getAllVehicelsService,
   getVehicelByIdService,
   createVehicelsService,
   deleteVehicleService,
+  updateVehicleService,
+  getVehicelByRegNumberService
 };
 
 export default vehiclesService;

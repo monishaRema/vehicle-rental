@@ -22,7 +22,7 @@ export const sendSuccess = (
   return res.status(status).json({
     success: true,
     message,
-    data: data ?? null,
+    data: data,
   });
 };
 

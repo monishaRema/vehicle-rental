@@ -111,6 +111,18 @@ const getBookings = async (req: Request, res: Response) => {
 };
 
 
+const updateBooking = async (req: Request, res: Response) => {
+  const { bookingId } = req.params;
+  const { rent_start_date, rent_end_date } = req.body;
+  const targetId = Number(bookingId);
+
+  if (isNaN(targetId)) {
+    return sendError(res, "Invalid booking id", 400);
+  }
+}
+
+
+
 
 const getBookingById = async (req: Request, res: Response) => {
   const { bookingId } = req.params;
@@ -137,6 +149,10 @@ const getBookingById = async (req: Request, res: Response) => {
     );
   }
 };
+
+
+
+
 
 const bookingController = {
   createBooking,

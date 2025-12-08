@@ -10,24 +10,42 @@ const getUserById = async (userId: number) => {
   );
 };
 
-const getAllUserService = async() => {
+const getUserByEmail = async (email: string) => {
+  return db.query(
+    `SELECT name, email
+     FROM users 
+     WHERE email = $1`,
+    [email]
+  );
+};
+
+const getAllUserService = async () => {
   return db.query(
     `SELECT id, name, email, phone, role, created_at, updated_at 
      FROM users
      ORDER BY id ASC`
   );
-}
+};
 
-
-
-
-
-const updateUserService = async (userId: number, payload: UpdateUserPayload) => {
+const updateUserService = async (
+  userId: number,
+  payload: UpdateUserPayload
+) => {
   const { name, email, phone, role } = payload;
 
-  
- const result = await db.query(
-    `UPDATE users
+  try {
+    if (email !== null && email !== undefined) {
+      const checkEmailExists = await getUserByEmail(email);
+      if (checkEmailExists.rowCount !== 0) {
+        return {
+          status: 409,
+          message: `Email - ${email} already in use by another user`,
+        };
+      }
+    }
+
+    const result = await db.query(
+      `UPDATE users
      SET
        name       = COALESCE($2, name),
        email      = COALESCE($3, email),
@@ -35,28 +53,36 @@ const updateUserService = async (userId: number, payload: UpdateUserPayload) => 
        role       = COALESCE($5, role),
        updated_at = NOW()
      WHERE id = $1
-     RETURNING id, name, email, phone, role,updated_at`,
-    [
-      userId,
-      name ?? null,
-      email ?? null,
-      phone ?? null,
-      role ?? null,
-    ]
-  );
+     RETURNING id, name, email, phone, role`,
+      [userId, name ?? null, email ?? null, phone ?? null, role ?? null]
+    );
 
-  return result;
+    if (result.rowCount === 0) {
+      return {
+        status: 500,
+        message: "Failed to update user",
+      };
+    }
+    return {
+      status: 200,
+      message: "User updated successfully",
+      data: result.rows[0],
+    };
+  } catch (error: any) {
+    return {
+      status: 500,
+      message:
+        "Unexpected database error while updating user. Please try again later.",
+    };
+  }
 };
- 
-
 
 const deleteUserService = async (userId: number) => {
   try {
     // Check user exists
-    const userResult = await db.query(
-      `SELECT id FROM users WHERE id = $1`,
-      [userId]
-    );
+    const userResult = await db.query(`SELECT id FROM users WHERE id = $1`, [
+      userId,
+    ]);
 
     if (userResult.rowCount === 0) {
       return {
@@ -86,10 +112,9 @@ const deleteUserService = async (userId: number) => {
     }
 
     // delete user
-    const deleteResult = await db.query(
-      `DELETE FROM users WHERE id = $1`,
-      [userId]
-    );
+    const deleteResult = await db.query(`DELETE FROM users WHERE id = $1`, [
+      userId,
+    ]);
 
     if (deleteResult.rowCount === 0) {
       return {
@@ -110,14 +135,11 @@ const deleteUserService = async (userId: number) => {
   }
 };
 
-
-
 const userService = {
-
-    getAllUserService,
-    getUserById,
-    updateUserService,
-    deleteUserService
-
-}
+  getAllUserService,
+  getUserById,
+  updateUserService,
+  deleteUserService,
+  getUserByEmail,
+};
 export default userService;

@@ -14,8 +14,8 @@ usersRouter.get("/", auth("admin"), usersController.getAllUsers)
 usersRouter.put("/:userId", auth("admin", "customer"), usersController.updateUser)
 
 
-// DELETE => /api/v1/users => delete user if no active booking - admin only route
-usersRouter.delete("/", auth("admin"), usersController.deleteUser)
+// DELETE => /api/v1/users/:userId => delete user if no active booking - admin only route
+usersRouter.delete("/:userId", auth("admin"), usersController.deleteUser)
 
 
 export default usersRouter;

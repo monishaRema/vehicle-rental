@@ -1,7 +1,7 @@
+import { AuthUser } from "./../../types/types.d";
 import { Request, Response } from "express";
 import { sendError, sendSuccess } from "../../lib/helpers";
 import bookingsService from "./bookings.service";
-import { AuthUser } from "../../types/types";
 
 const createBooking = async (req: Request, res: Response) => {
   const authUser = req.user as AuthUser | undefined;
@@ -84,7 +84,7 @@ const getBookings = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await bookingsService.getAllBookingsService({id,role,});
+    const result = await bookingsService.getAllBookingsService({ id, role });
 
     if (result.status >= 400) {
       return sendError(res, result.message, result.status);
@@ -93,14 +93,19 @@ const getBookings = async (req: Request, res: Response) => {
     const data = result.data || [];
 
     if (data.length === 0) {
-      const msg = role === "admin"? "No bookings found" : "You don't have any bookings yet";
+      const msg =
+        role === "admin"
+          ? "No bookings found"
+          : "You don't have any bookings yet";
       return sendSuccess(res, msg, 200, []);
     }
 
-    const msg = role === "admin"? "Bookings retrieved successfully" : "Your bookings retrieved successfully";
+    const msg =
+      role === "admin"
+        ? "Bookings retrieved successfully"
+        : "Your bookings retrieved successfully";
 
     return sendSuccess(res, msg, 200, data);
-
   } catch (err: any) {
     return sendError(
       res,
@@ -109,55 +114,129 @@ const getBookings = async (req: Request, res: Response) => {
     );
   }
 };
-
 
 const updateBooking = async (req: Request, res: Response) => {
+  const AuthUser = (req.user as AuthUser) || undefined;
+  if (!AuthUser) {
+    return sendError(res, "Unauthorized", 401);
+  }
+
+  const status = req.body.status;
+  if (!status) {
+    return sendError(res, "Status is requierd", 400);
+  }
+
+  // Extract bookingId
+
   const { bookingId } = req.params;
-  const { rent_start_date, rent_end_date } = req.body;
   const targetId = Number(bookingId);
 
   if (isNaN(targetId)) {
     return sendError(res, "Invalid booking id", 400);
   }
-}
 
+  // Check if booking exists
+  const existingBookingResult = await bookingsService.getBookingByIdService(
+    targetId
+  );
 
-
-
-const getBookingById = async (req: Request, res: Response) => {
-  const { bookingId } = req.params;
-
-  const targetId = Number(bookingId);
-
-  if (isNaN(targetId)) {
-    return sendError(res, "Invalid booking id", 400);
+  if (existingBookingResult.rowCount === 0) {
+    return sendError(res, "Booking not found", 404);
   }
+  const booking = existingBookingResult.rows[0];
 
-  try {
-    const result = await bookingsService.getBookingByIdService(targetId);
+  if (AuthUser.role === "customer") {
 
-    if (result.rowCount === 0) {
-      return sendSuccess(res, "No booking found", 200);
+    if (!status || status !== "cancelled") {
+      return sendError(
+        res,
+        "Invalid status update. Only 'cancelled' status is allowed for customers.",
+        400
+      );
     }
 
-    return sendSuccess(res, "successfully get all bookings", 200);
-  } catch (err: any) {
-    return sendError(
-      res,
-      "Unexpected server error while fetching bookings",
-      500
-    );
+    // only the customer who made the booking can cancel it
+    if (AuthUser.id !== booking.customer_id) {
+      return sendError(res, "You can cancel only your own booking", 403);
+    }
+
+
+    // Cancel only active booking
+    if (booking.status !== "active") {
+      return sendError(res, "Only active bookings can be cancelled", 400);
+    }
+
+
+    //  booking can be cancelled only before the rent_start_date
+    const now = new Date();
+    const startDate = new Date(booking?.rent_start_date);
+
+    if (now >= startDate) {
+      return sendError(
+        res,
+        "You can only cancel a booking before the start date",
+        400
+      );
+    }
+     const result = await bookingsService.cancelBookingService(targetId);
+     if(result.status !== 200){
+        return sendError(res,result.message,result.status)
+     }
+
+     const updateVehicle = await bookingsService.updateVehicleToAvaible(booking.vehicle_id)
+
+     if(updateVehicle.status !== 200){
+      return sendError(res,updateVehicle.message,updateVehicle.status)
+     }
+
+    return sendSuccess(res, result.message,result.status,result.data);
+
+
+  } else if (AuthUser.role === "admin") {
+    if (!status || status !== "returned") {
+      return sendError(
+        res,
+        "Invalid status update. Only 'returned' status is allowed for admin.",
+        400
+      );
+    }
+
+    return sendSuccess(res, "Booking cancelled successfully", 200);
+  } else {
+    return sendError(res, "Invalid user role", 403);
   }
 };
 
+// const getBookingById = async (req: Request, res: Response) => {
+//   const { bookingId } = req.params;
 
+//   const targetId = Number(bookingId);
 
+//   if (isNaN(targetId)) {
+//     return sendError(res, "Invalid booking id", 400);
+//   }
 
+//   try {
+//     const result = await bookingsService.getBookingByIdService(targetId);
+
+//     if (result.rowCount === 0) {
+//       return sendSuccess(res, "No booking found", 200);
+//     }
+
+//     return sendSuccess(res, "successfully get all bookings", 200);
+//   } catch (err: any) {
+//     return sendError(
+//       res,
+//       "Unexpected server error while fetching bookings",
+//       500
+//     );
+//   }
+// };
 
 const bookingController = {
   createBooking,
   getBookings,
-  getBookingById,
+  // getBookingById,
   updateBooking,
 };
 export default bookingController;

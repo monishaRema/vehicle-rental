@@ -51,7 +51,10 @@ const createVehicelsService = async (
     return {
       status: 200,
       message: "Vehicle created successfully",
-      data: result.rows[0],
+      data: {
+        ...result.rows[0],
+        daily_rent_price:Number(result.rows[0].daily_rent_price)
+      },
     };
   } catch (err: any) {
     console.log(err.message);

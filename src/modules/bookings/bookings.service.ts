@@ -34,7 +34,7 @@ const createBookingsService = async (payload: CreateBookingInput) => {
     };
   }
   const vehicle = vehicleData.rows[0];
-  console.log(vehicle, vehicleData);
+
   if (vehicle.availability_status === "booked") {
     return {
       status: 400,
@@ -43,7 +43,7 @@ const createBookingsService = async (payload: CreateBookingInput) => {
   }
 
   // Calculate total price
-  const totalPrice = vehicle.daily_rent_price * durationDays;
+  const totalPrice = Number(vehicle.daily_rent_price * durationDays);
 
   try {
     const result = await db.query(
@@ -87,9 +87,11 @@ const createBookingsService = async (payload: CreateBookingInput) => {
         ...result.rows[0],
         rent_start_date: formatDate(result.rows[0].rent_start_date),
         rent_end_date: formatDate(result.rows[0].rent_end_date),
+        total_price: Number(result.rows[0].total_price),
+
         vehicle: {
           vehicle_name: vehicle?.vehicle_name,
-          daily_rent_price: vehicle?.daily_rent_price,
+          daily_rent_price: Number(vehicle?.daily_rent_price),
         },
       },
     };
@@ -101,10 +103,8 @@ const createBookingsService = async (payload: CreateBookingInput) => {
   }
 };
 
-const getAllBookingsService = async (
-  params: AuthUser
-) => {
-  const { id ,role } = params;
+const getAllBookingsService = async (params: AuthUser) => {
+  const { id, role } = params;
 
   try {
     if (role === "admin") {
@@ -170,7 +170,6 @@ const getAllBookingsService = async (
       FROM bookings b
       JOIN vehicles v ON b.vehicle_id = v.id
       WHERE b.customer_id = $1
-      ORDER BY b.created_at DESC
       `,
       [id]
     );
@@ -214,16 +213,86 @@ const getVehicleAvailablityById = async (vehicleId: number) => {
   );
 };
 
-const updateBookingService = async () =>{
+const updateBookingService = async () => {};
 
-}
+const updateVehicleToAvaible = async (vehicleId: number) => {
+  try {
+    const result = await db.query(
+      `
+        UPDATE vehicles
+            SET availability_status = 'available'
+        WHERE id = $1
+      
+      `,
+      [vehicleId]
+    );
+
+    if (result.rowCount === 0) {
+      return {
+        status: 500,
+        message: "Unexpected database error while updating vehicle",
+      };
+    }
+
+    return {
+      status: 200,
+      message: "Vehicle updated to available",
+    };
+  } catch (err: any) {
+    return {
+      status: 500,
+      message: "Unexpected database error while updating vehicle",
+    };
+  }
+};
+
+const cancelBookingService = async (bookingId: number) => {
+  try {
+    const result = await db.query(
+      `
+        UPDATE bookings 
+        SET 
+          status = 'cancelled'
+        WHERE id = $1
+        RETURNING id,customer_id,vehicle_id,rent_start_date,rent_end_date,total_price,status
+      `,
+      [bookingId]
+    );
+
+    if (result.rowCount === 0) {
+      return {
+        status: 500,
+        message: "Failed to cancel the booking",
+      };
+    }
+
+    return {
+      status: 200,
+      message: "Booking cancelled successfully",
+      data: {
+        ...result.rows[0],
+        rent_start_date: formatDate(result.rows[0]?.rent_start_date),
+        rent_end_date: formatDate(result.rows[0]?.rent_end_date),
+        total_price: Number(result.rows[0].total_price),
+      },
+    };
+  } catch (err: any) {
+  
+    return {
+      status: 500,
+      message: "Unexpected databse error",
+    };
+  }
+};
 
 const bookingsService = {
   getAllBookingsService,
   getBookingByIdService,
   createBookingsService,
   getVehicleAvailablityById,
-  updateBookingService
+  updateBookingService,
+  cancelBookingService,
+  updateVehicleToAvaible
 };
 
 export default bookingsService;
